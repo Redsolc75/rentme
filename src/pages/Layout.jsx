@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-// He eliminat la línia: import { createPageUrl } from './utils';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -16,13 +15,12 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// --- FUNCIÓ AFEGIDA AQUÍ PER EVITAR L'ERROR DE BUILD ---
+// --- FUNCIÓ INTEGRADA (Així no necessitem fitxers externs) ---
 const createPageUrl = (pageName) => {
   if (!pageName) return '/';
-  // Converteix "Dashboard" -> "/dashboard"
   return `/${pageName.toLowerCase()}`;
 };
-// -------------------------------------------------------
+// -------------------------------------------------------------
 
 const navItems = [
   { name: 'Tauler de control', icon: LayoutDashboard, page: 'Dashboard' },
@@ -38,7 +36,6 @@ const systemItems = [
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -171,7 +168,6 @@ export default function Layout({ children }) {
         <div className="p-3 border-t border-slate-100">
           <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group">
             {isLoadingUser ? (
-              // Skeleton Loading State
               <>
                 <div className="w-10 h-10 rounded-full bg-slate-200 animate-pulse" />
                 <div className="flex-1 space-y-2">
@@ -180,7 +176,6 @@ export default function Layout({ children }) {
                 </div>
               </>
             ) : (
-              // Actual User Data
               <>
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-medium text-sm">
                   {user?.full_name?.charAt(0) || 'U'}
@@ -205,7 +200,6 @@ export default function Layout({ children }) {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 transition-all duration-300">
         {children}
       </main>
