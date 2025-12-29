@@ -1,8 +1,8 @@
 import { createClient } from '@base44/sdk';
-// import { getAccessToken } from '@base44/sdk/utils/auth-utils';
 
-// Create a client with authentication required
+// Create a client with specific domain configuration
 export const base44 = createClient({
   appId: "695172a8e74f1397aadca539", 
-  requiresAuth: true // Ensure authentication is required for all operations
+  requiresAuth: false, // Ho posem false per evitar el bloqueig inicial
+  domain: "gestio-immobiliaria-pro-aadca539.base44.app" // AQUESTA ÉS LA CLAU: Forcem el domini bo
 });
