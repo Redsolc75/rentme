@@ -1,0 +1,3 @@
+{
+  "installCommand": "npm install @tanstack/react-query && npm install"
+}
