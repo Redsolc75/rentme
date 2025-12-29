@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom'; // Afegits hooks de router
-import { createPageUrl } from './utils';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+// He eliminat la línia: import { createPageUrl } from './utils';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -16,6 +16,14 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// --- FUNCIÓ AFEGIDA AQUÍ PER EVITAR L'ERROR DE BUILD ---
+const createPageUrl = (pageName) => {
+  if (!pageName) return '/';
+  // Converteix "Dashboard" -> "/dashboard"
+  return `/${pageName.toLowerCase()}`;
+};
+// -------------------------------------------------------
+
 const navItems = [
   { name: 'Tauler de control', icon: LayoutDashboard, page: 'Dashboard' },
   { name: 'Propietats', icon: Home, page: 'Properties' },
@@ -28,33 +36,29 @@ const systemItems = [
   { name: 'Configuració', icon: Settings, page: 'Settings' },
 ];
 
-// Eliminem la prop 'currentPageName', ja no és necessària
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
-  // Hooks de React Router
   const location = useLocation();
   const navigate = useNavigate();
   
   const { data: user, isLoading: isLoadingUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
-    retry: 1, // Evita reintents infinits si l'usuari no està autenticat
+    retry: 1,
   });
 
   const handleLogout = async () => {
     try {
       await base44.auth.logout();
-      navigate('/login'); // Redirigeix a la pantalla d'accés
+      navigate('/login');
     } catch (error) {
       console.error("Error al tancar sessió:", error);
     }
   };
 
-  // Funció auxiliar per determinar si un enllaç està actiu
   const checkIsActive = (pageName) => {
     const targetUrl = createPageUrl(pageName);
-    // Compara la URL actual amb la de l'item (ajusta segons la lògica de les teves rutes)
     return location.pathname === targetUrl || location.pathname.startsWith(targetUrl);
   };
 
@@ -187,7 +191,7 @@ export default function Layout({ children }) {
                 </div>
                 <button 
                   onClick={(e) => {
-                    e.stopPropagation(); // Evita el click al pare (per si vols fer que el div vagi a Perfil)
+                    e.stopPropagation();
                     handleLogout();
                   }}
                   className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors group-hover:text-red-500"
