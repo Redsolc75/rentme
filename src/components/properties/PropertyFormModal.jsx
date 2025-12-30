@@ -409,49 +409,46 @@ export default function PropertyFormModal({ property, onClose, onSuccess }) {
             <div className="sm:col-span-2 pt-4 border-t border-slate-100">
               <h3 className="text-sm font-semibold text-slate-800 mb-3">Característiques de l'Immoble</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2 pt-4 border-t border-slate-100">
-              <h3 className="text-sm font-semibold text-slate-800 mb-3">Característiques de l'Immoble</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label className="text-sm font-medium text-slate-700 mb-1.5 block">Superfície (m²)</Label>
-              <Input
-                type="number"
-                value={form.surface_area}
-                onChange={(e) => setForm({ ...form, surface_area: e.target.value })}
-                placeholder="85"
-                className="rounded-xl"
-              />
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-slate-700 mb-1.5 block">Habitacions</Label>
-              <Input
-                type="number"
-                value={form.rooms}
-                onChange={(e) => setForm({ ...form, rooms: e.target.value })}
-                placeholder="3"
-                className="rounded-xl"
-              />
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-slate-700 mb-1.5 block">Banys</Label>
-              <Input
-                type="number"
-                value={form.bathrooms}
-                onChange={(e) => setForm({ ...form, bathrooms: e.target.value })}
-                placeholder="2"
-                className="rounded-xl"
-              />
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-slate-700 mb-1.5 block">Any Construcció</Label>
-              <Input
-                type="number"
-                value={form.purchase_year}
-                onChange={(e) => setForm({ ...form, purchase_year: e.target.value })}
-                placeholder="1985"
-                className="rounded-xl"
-              />
-            </div>
+                <div>
+                  <Label className="text-sm font-medium text-slate-700 mb-1.5 block">Superfície (m²)</Label>
+                  <Input
+                    type="number"
+                    value={form.surface_area}
+                    onChange={(e) => setForm({ ...form, surface_area: e.target.value })}
+                    placeholder="85"
+                    className="rounded-xl"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-slate-700 mb-1.5 block">Habitacions</Label>
+                  <Input
+                    type="number"
+                    value={form.rooms}
+                    onChange={(e) => setForm({ ...form, rooms: e.target.value })}
+                    placeholder="3"
+                    className="rounded-xl"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-slate-700 mb-1.5 block">Banys</Label>
+                  <Input
+                    type="number"
+                    value={form.bathrooms}
+                    onChange={(e) => setForm({ ...form, bathrooms: e.target.value })}
+                    placeholder="2"
+                    className="rounded-xl"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-slate-700 mb-1.5 block">Any Construcció</Label>
+                  <Input
+                    type="number"
+                    value={form.purchase_year}
+                    onChange={(e) => setForm({ ...form, purchase_year: e.target.value })}
+                    placeholder="1985"
+                    className="rounded-xl"
+                  />
+                </div>
               </div>
             </div>
             <div className="sm:col-span-2">
