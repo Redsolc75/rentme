@@ -1,16 +1,26 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { getFiscalYear } from '@/utils/financialCalculations';
 import { Plus, Download, TrendingUp, TrendingDown, Calendar, Euro, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import StatusBadge from '@/components/ui/StatusBadge';
 import SearchInput from '@/components/ui/SearchInput';
 import FilterTabs from '@/components/ui/FilterTabs';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function Finances() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [yearFilter, setYearFilter] = useState(new Date().getFullYear().toString());
+  const [propertyFilter, setPropertyFilter] = useState('all');
   const queryClient = useQueryClient();
 
   const { data: transactions = [], isLoading } = useQuery({
@@ -28,18 +38,25 @@ export default function Finances() {
     queryFn: () => base44.entities.Tenant.list(),
   });
 
-  // Calculate stats
+  // Calculate stats with filters
+  const currentYearInt = parseInt(yearFilter);
   const totalIncome = transactions
-    .filter(t => t.type === 'Ingrés')
+    .filter(t => t.type === 'Ingrés' && getFiscalYear(t.date) === currentYearInt)
     .reduce((sum, t) => sum + (t.amount || 0), 0);
   
   const totalExpenses = transactions
-    .filter(t => t.type === 'Despesa')
+    .filter(t => t.type === 'Despesa' && getFiscalYear(t.date) === currentYearInt)
     .reduce((sum, t) => sum + (t.amount || 0), 0);
   
   const pendingAmount = transactions
-    .filter(t => t.status === 'Pendent' || t.status === 'Endarrerit')
+    .filter(t => (t.status === 'Pendent' || t.status === 'Endarrerit') && getFiscalYear(t.date) === currentYearInt)
     .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+  // Generate available years from transactions
+  const availableYears = [...new Set(transactions.map(t => getFiscalYear(t.date)))].sort((a, b) => b - a);
+  if (availableYears.length === 0) {
+    availableYears.push(new Date().getFullYear());
+  }
 
   const filterTabs = [
     { value: 'all', label: 'Tots' },
@@ -52,8 +69,11 @@ export default function Finances() {
       t.description?.toLowerCase().includes(search.toLowerCase()) ||
       t.category?.toLowerCase().includes(search.toLowerCase());
     
-    if (typeFilter === 'all') return matchesSearch;
-    return matchesSearch && t.type === typeFilter;
+    const matchesType = typeFilter === 'all' || t.type === typeFilter;
+    const matchesYear = getFiscalYear(t.date) === currentYearInt;
+    const matchesProperty = propertyFilter === 'all' || t.property_id === propertyFilter;
+    
+    return matchesSearch && matchesType && matchesYear && matchesProperty;
   });
 
   // Sample chart data
@@ -217,18 +237,47 @@ export default function Finances() {
 
       {/* Filters */}
       <div className="bg-white rounded-2xl p-4 mb-6 shadow-sm border border-slate-100">
-        <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Cercar transaccions..."
-            className="w-full sm:w-80"
-          />
-          <FilterTabs 
-            tabs={filterTabs}
-            activeTab={typeFilter}
-            onChange={setTypeFilter}
-          />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Cercar transaccions..."
+              className="w-full sm:w-80"
+            />
+            <FilterTabs 
+              tabs={filterTabs}
+              activeTab={typeFilter}
+              onChange={setTypeFilter}
+            />
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              <Select value={yearFilter} onValueChange={setYearFilter}>
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="Any fiscal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableYears.map(year => (
+                    <SelectItem key={year} value={year.toString()}>Any {year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Select value={propertyFilter} onValueChange={setPropertyFilter}>
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="Propietat" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Totes les propietats</SelectItem>
+                  {properties.map(property => (
+                    <SelectItem key={property.id} value={property.id}>{property.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
       </div>
 

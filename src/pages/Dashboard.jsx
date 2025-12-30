@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { calculateAnnualProfit } from '@/utils/financialCalculations';
 import { 
   Home, 
   Wallet, 
@@ -19,8 +20,16 @@ import StatsCard from '@/components/dashboard/StatsCard';
 import ActionButton from '@/components/dashboard/ActionButton';
 import TasksPanel from '@/components/dashboard/TasksPanel';
 import IncomeChart from '@/components/dashboard/IncomeChart';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function Dashboard() {
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
@@ -42,6 +51,9 @@ export default function Dashboard() {
   });
 
   // Calculate stats
+  const currentYear = new Date().getFullYear();
+  const annualProfit = calculateAnnualProfit(properties, transactions, currentYear);
+  
   const totalProperties = properties.length;
   const rentedProperties = properties.filter(p => p.status === 'Llogat').length;
   const occupancyRate = totalProperties > 0 ? Math.round((rentedProperties / totalProperties) * 100) : 0;
@@ -53,6 +65,11 @@ export default function Dashboard() {
   const pendingPayments = transactions
     .filter(t => t.status === 'Pendent' || t.status === 'Endarrerit')
     .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+  // Filter properties by category
+  const filteredProperties = categoryFilter === 'all' 
+    ? properties 
+    : properties.filter(p => p.category === categoryFilter);
 
   const pendingTasks = [
     { type: 'payment', title: 'Lloguer Vençut', subtitle: 'Marta López - A...', badge: '450 €', time: 'Avui', urgent: true },
@@ -74,6 +91,33 @@ export default function Dashboard() {
           <FileText className="w-4 h-4" />
           Informe
         </button>
+      </div>
+
+      {/* Annual Profit Summary Card */}
+      <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 mb-8 shadow-lg text-white">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-blue-100 text-sm font-medium mb-1">Benefici Net Anual {currentYear}</p>
+            <h2 className="text-4xl font-bold">{annualProfit.netProfit.toLocaleString('ca-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</h2>
+          </div>
+          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
+            <TrendingUp className="w-8 h-8" />
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/20">
+          <div>
+            <p className="text-blue-100 text-xs mb-1">Ingressos Totals</p>
+            <p className="text-lg font-semibold">+{annualProfit.totalIncome.toLocaleString('ca-ES')} €</p>
+          </div>
+          <div>
+            <p className="text-blue-100 text-xs mb-1">Despeses Totals</p>
+            <p className="text-lg font-semibold">-{annualProfit.totalExpenses.toLocaleString('ca-ES')} €</p>
+          </div>
+          <div>
+            <p className="text-blue-100 text-xs mb-1">Marge Net</p>
+            <p className="text-lg font-semibold">{totalProperties > 0 ? ((annualProfit.netProfit / annualProfit.totalIncome) * 100).toFixed(1) : 0}%</p>
+          </div>
+        </div>
       </div>
 
       {/* Quick Actions */}
@@ -166,18 +210,33 @@ export default function Dashboard() {
       {/* Featured Properties */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-slate-800">Propietats Destacades</h3>
-          <Link 
-            to={createPageUrl('Properties')}
-            className="text-sm text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1 group"
-          >
-            Veure totes
-            <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-          </Link>
+          <h3 className="font-semibold text-slate-800">Propietats</h3>
+          <div className="flex items-center gap-3">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-44 rounded-xl">
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Totes les categories</SelectItem>
+                <SelectItem value="Pis">Pis</SelectItem>
+                <SelectItem value="Local comercial">Local comercial</SelectItem>
+                <SelectItem value="Nau industrial">Nau industrial</SelectItem>
+                <SelectItem value="Parking">Parking</SelectItem>
+                <SelectItem value="Solar">Solar</SelectItem>
+              </SelectContent>
+            </Select>
+            <Link 
+              to={createPageUrl('Properties')}
+              className="text-sm text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1 group"
+            >
+              Veure totes
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {(properties.length > 0 ? properties.slice(0, 3) : [
+          {(filteredProperties.length > 0 ? filteredProperties.slice(0, 6) : [
             { id: 1, name: 'Apartament Centre', address: 'Carrer Major 12, 2n 1a', rent_price: 850, status: 'Llogat', image_url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400' },
             { id: 2, name: 'Casa de la Vila', address: 'Plaça de l\'Ajuntament 4', rent_price: 1200, status: 'Llogat', image_url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400' },
             { id: 3, name: 'Estudi Platja', address: 'Passeig Marítim 45', rent_price: 600, status: 'Buit', image_url: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400' },

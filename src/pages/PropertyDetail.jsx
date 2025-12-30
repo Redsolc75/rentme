@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { calculatePropertyProfit } from '@/utils/financialCalculations';
 import { 
   ChevronRight, 
   Pencil, 
@@ -21,7 +22,9 @@ import {
   Download,
   Plus,
   Wrench,
-  CheckCircle2
+  CheckCircle2,
+  Upload,
+  ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -67,9 +70,18 @@ export default function PropertyDetail() {
     enabled: !!propertyId,
   });
 
+  const { data: transactions = [] } = useQuery({
+    queryKey: ['transactions'],
+    queryFn: () => base44.entities.Transaction.list(),
+  });
+
   // Get current tenant
   const activeContract = contracts.find(c => c.property_id === propertyId && c.status === 'Actiu');
   const currentTenant = activeContract ? tenants.find(t => t.id === activeContract.tenant_id) : null;
+
+  // Calculate property financials
+  const currentYear = new Date().getFullYear();
+  const propertyFinancials = property ? calculatePropertyProfit(property, transactions, currentYear) : { income: 0, expenses: 0, netProfit: 0 };
 
   if (propertyLoading) {
     return (
@@ -299,42 +311,210 @@ export default function PropertyDetail() {
 
             <TabsContent value="documents" className="mt-6">
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-slate-800">Documents</h3>
-                  <button className="text-sm text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1">
-                    <Plus className="w-4 h-4" />
-                    Afegir
-                  </button>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-semibold text-slate-800">Documents de la Propietat</h3>
                 </div>
-                <div className="space-y-3">
-                  {sampleDocuments.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                          <FileText className="w-5 h-5 text-red-500" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-slate-800">{doc.name}</p>
-                          <p className="text-xs text-slate-400">{doc.type} • {doc.file_size} • {doc.upload_date}</p>
-                        </div>
+                
+                {/* Contract and Deposit PDFs */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="p-5 rounded-xl border-2 border-blue-100 bg-blue-50/50">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+                        <FileText className="w-6 h-6 text-white" />
                       </div>
-                      <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                        <Download className="w-4 h-4 text-slate-400" />
-                      </button>
+                      <div>
+                        <p className="font-semibold text-slate-800">Contracte de Lloguer</p>
+                        <p className="text-xs text-slate-500">Document oficial signat</p>
+                      </div>
                     </div>
-                  ))}
+                    {property?.contract_pdf_url ? (
+                      <a
+                        href={property.contract_pdf_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Veure / Descarregar
+                      </a>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-slate-400">No s'ha pujat cap contracte</p>
+                        <button 
+                          onClick={() => setShowEditModal(true)}
+                          className="text-xs text-blue-500 hover:underline mt-2"
+                        >
+                          Afegir contracte
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-5 rounded-xl border-2 border-emerald-100 bg-emerald-50/50">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center">
+                        <FileText className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-800">Rebut de Fiança</p>
+                        <p className="text-xs text-slate-500">Justificant de dipòsit</p>
+                      </div>
+                    </div>
+                    {property?.deposit_receipt_pdf_url ? (
+                      <a
+                        href={property.deposit_receipt_pdf_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Veure / Descarregar
+                      </a>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-slate-400">No s'ha pujat cap rebut</p>
+                        <button 
+                          onClick={() => setShowEditModal(true)}
+                          className="text-xs text-blue-500 hover:underline mt-2"
+                        >
+                          Afegir rebut
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Other documents */}
+                <div className="pt-4 border-t border-slate-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-medium text-slate-700">Altres Documents</h4>
+                    <button className="text-sm text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1">
+                      <Plus className="w-4 h-4" />
+                      Afegir
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {sampleDocuments.map((doc) => (
+                      <div key={doc.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-red-500" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-800">{doc.name}</p>
+                            <p className="text-xs text-slate-400">{doc.type} • {doc.file_size} • {doc.upload_date}</p>
+                          </div>
+                        </div>
+                        <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                          <Download className="w-4 h-4 text-slate-400" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </TabsContent>
 
             <TabsContent value="finances" className="mt-6">
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 text-center py-12">
-                <p className="text-slate-500">Historial financer de la propietat</p>
-                <Link to={createPageUrl('Finances')}>
-                  <Button variant="outline" className="mt-4 rounded-xl">
-                    Veure Finances
-                  </Button>
-                </Link>
+              <div className="space-y-4">
+                {/* Financial Summary */}
+                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white">
+                  <h3 className="text-lg font-semibold mb-4">Resum Financer {currentYear}</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-blue-100 text-xs mb-1">Ingressos</p>
+                      <p className="text-2xl font-bold">+{propertyFinancials.income.toLocaleString('ca-ES')} €</p>
+                    </div>
+                    <div>
+                      <p className="text-blue-100 text-xs mb-1">Despeses</p>
+                      <p className="text-2xl font-bold">-{propertyFinancials.expenses.toLocaleString('ca-ES')} €</p>
+                    </div>
+                    <div>
+                      <p className="text-blue-100 text-xs mb-1">Benefici Net</p>
+                      <p className="text-2xl font-bold">{propertyFinancials.netProfit.toLocaleString('ca-ES')} €</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expense Breakdown */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                    <h4 className="font-semibold text-slate-800 mb-4">Despeses Impostos Anuals</h4>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                        <div>
+                          <p className="text-sm font-medium text-slate-700">IBI</p>
+                          <p className="text-xs text-slate-500">Paga: {property?.who_pays_ibi || 'Propietari'}</p>
+                        </div>
+                        <span className="font-semibold text-slate-800">{property?.ibi_cost_annual?.toLocaleString('ca-ES') || 0} €</span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                        <div>
+                          <p className="text-sm font-medium text-slate-700">Escombraries</p>
+                          <p className="text-xs text-slate-500">Paga: {property?.who_pays_garbage || 'Propietari'}</p>
+                        </div>
+                        <span className="font-semibold text-slate-800">{property?.garbage_tax_annual?.toLocaleString('ca-ES') || 0} €</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                    <h4 className="font-semibold text-slate-800 mb-4">Despeses del Propietari</h4>
+                    <div className="space-y-3">
+                      {property?.who_pays_ibi === 'Propietari' && (
+                        <div className="flex items-center justify-between p-3 bg-red-50 rounded-xl border border-red-100">
+                          <p className="text-sm font-medium text-slate-700">IBI (Propietari)</p>
+                          <span className="font-semibold text-red-600">-{property?.ibi_cost_annual?.toLocaleString('ca-ES') || 0} €</span>
+                        </div>
+                      )}
+                      {property?.who_pays_garbage === 'Propietari' && (
+                        <div className="flex items-center justify-between p-3 bg-red-50 rounded-xl border border-red-100">
+                          <p className="text-sm font-medium text-slate-700">Escombraries (Propietari)</p>
+                          <span className="font-semibold text-red-600">-{property?.garbage_tax_annual?.toLocaleString('ca-ES') || 0} €</span>
+                        </div>
+                      )}
+                      {property?.who_pays_ibi === 'Llogater' && property?.who_pays_garbage === 'Llogater' && (
+                        <div className="text-center py-4">
+                          <p className="text-sm text-emerald-600 font-medium">✓ Tots els impostos els paga el llogater</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recent Transactions */}
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-semibold text-slate-800">Transaccions Recents</h4>
+                    <Link to={createPageUrl('Finances')} className="text-sm text-blue-500 hover:text-blue-600 font-medium">
+                      Veure totes
+                    </Link>
+                  </div>
+                  <div className="space-y-2">
+                    {transactions
+                      .filter(t => t.property_id === propertyId)
+                      .slice(0, 5)
+                      .map((transaction) => (
+                        <div key={transaction.id} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-2 h-2 rounded-full ${transaction.type === 'Ingrés' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                            <div>
+                              <p className="text-sm font-medium text-slate-800">{transaction.description || transaction.category}</p>
+                              <p className="text-xs text-slate-400">{transaction.date ? new Date(transaction.date).toLocaleDateString('ca-ES') : ''}</p>
+                            </div>
+                          </div>
+                          <span className={`font-semibold ${transaction.type === 'Ingrés' ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {transaction.type === 'Ingrés' ? '+' : '-'}{transaction.amount?.toLocaleString('ca-ES')} €
+                          </span>
+                        </div>
+                      ))}
+                    {transactions.filter(t => t.property_id === propertyId).length === 0 && (
+                      <div className="text-center py-8">
+                        <p className="text-slate-400 text-sm">No hi ha transaccions per aquesta propietat</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </TabsContent>
           </Tabs>
